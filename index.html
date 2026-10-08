@@ -218,21 +218,14 @@ function seed(){
     'Pull B':[['Lat Pulldown',4,'10'],['Seated Cable Row',3,'10–12'],['Rear Delt Fly',3,'15'],['Barbell Curl',3,'8–10']],
     'Legs B':[['Front Squat',4,'6'],['Hip Thrust',3,'10'],['Walking Lunge',3,'12'],['Leg Extension',3,'15'],['Seated Calf Raise',3,'15']]
   };
-  const W={'bench press':80,'overhead press':50,'incline db press':28,'lateral raise':10,'triceps pushdown':30,'deadlift':140,'weighted pull-up':10,'barbell row':70,'face pull':20,'hammer curl':16,'back squat':110,'romanian deadlift':100,'leg press':180,'leg curl':45,'standing calf raise':80,'incline bench press':65,'weighted dip':10,'cable fly':15,'skull crusher':30,'lat pulldown':60,'seated cable row':60,'rear delt fly':8,'barbell curl':35,'front squat':85,'hip thrust':120,'walking lunge':20,'leg extension':50,'seated calf raise':50};
   const split=Object.entries(T).map(([name,ex])=>({id:uid(),name,ex:ex.map(([n,s,r])=>({id:uid(),name:n,sets:s,reps:r}))}));
-  const sessions=[];
-  for(let wk=0;wk<3;wk++){split.forEach((d,i)=>{
-    const date=new Date();date.setDate(date.getDate()-(21-(wk*7+i)));date.setHours(18,0,0,0);
-    sessions.push({id:uid(),date:date.toISOString(),dayId:d.id,dayName:d.name,entries:d.ex.map((x,xi)=>{
-      const base=W[k(x.name)]||20,inc=base>=60?2.5:base>=20?1:0.5,w=base+inc*wk,rg=range(x.reps);
-      const topOut=wk===2&&xi===0; /* last week's first lift hit the top of its range, so the app suggests going up */
-      return{name:x.name,sets:Array.from({length:x.sets},(_,j)=>({w,r:topOut?rg.hi:Math.max(rg.lo,rg.lo+2-j)}))};})});
-  });}
-  return{v:1,unit:'kg',rest:90,example:true,split,next:0,sessions,drafts:{}};
+  return{v:1,unit:'kg',rest:90,split,next:0,sessions:[],drafts:{}};
 }
 function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&Array.isArray(s.split))return s}catch(e){}return null}
 let S=load()||seed();
 S.drafts=S.drafts||{};if(S.rest==null)S.rest=90;
+/* older versions came with sample workouts, all saved at exactly 18:00:00.000; remove them and keep real ones */
+if(S.example){S.sessions=S.sessions.filter(x=>{const d=new Date(x.date);return !(d.getHours()===18&&d.getMinutes()===0&&d.getSeconds()===0&&d.getMilliseconds()===0)});delete S.example}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}updateAwake()}
 
 let tab='today',viewDay=null,pendingDel=null,panel=null,editSess=null;
@@ -310,7 +303,6 @@ function vToday(){
       <button class="addset" data-a="addset" data-e="${ex.id}">+ Add set</button>
     </section>`}).join('');
   return `
-  ${S.example?`<div class="banner"><span>The history here is example data so you can see how it works.</span><button class="link" data-a="clearex">Clear examples</button></div>`:''}
   <div class="chips" role="tablist">${sp.map((d,i)=>`<button class="chip${d.id===day.id?' on':''}${i===nx?' next':''}" data-a="pick" data-v="${d.id}"><b>${i===nx?'Up next':'Day '+(i+1)}</b><span>${esc(d.name)||'Untitled'}</span></button>`).join('')}</div>
   <div class="dayhead">
     <div class="eyebrow">Day ${idx+1} of ${sp.length}${idx!==nx?' · not your next day':''}</div>
@@ -454,7 +446,6 @@ document.addEventListener('click',ev=>{
     case 'skip':S.next=(S.next+1)%S.split.length;viewDay=null;toast(`Skipped. Next up: ${S.split[S.next].name}`);break;
     case 'rest':if(!rest)return;if(v==='x'){rest=null}else{const now=Date.now();if(rest.end<=now){rest.end=now;rest.fired=false}rest.end+=(+v)*1000;rest.dur=Math.max(rest.dur,rest.end-now);if(rest.end<=now)rest=null}tickRest();return;
     case 'restlen':S.rest=+v;break;
-    case 'clearex':S.sessions=[];S.example=false;toast('Example history cleared');break;
     case 'addday':S.split.push({id:uid(),name:'Day '+(S.split.length+1),ex:[]});break;
     case 'askdel':pendingDel=b.dataset.d;break;
     case 'delday':{const i=S.split.indexOf(d);S.split.splice(i,1);delete S.drafts[d.id];if(S.next>=S.split.length)S.next=0;pendingDel=null;viewDay=null;break}
@@ -465,7 +456,7 @@ document.addEventListener('click',ev=>{
     case 'panel':panel=panel===v?null:v;break;
     case 'copy':{const t=document.getElementById('bk');if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t.value).then(()=>toast('Backup copied'),()=>{t.select();toast('Selected. Copy it manually')})}else{t.select();toast('Selected. Copy it manually')}return}
     case 'restore':{try{const o=JSON.parse(document.getElementById('rs').value);if(!Array.isArray(o.split)||!Array.isArray(o.sessions))throw 0;S=o;S.drafts=S.drafts||{};if(S.rest==null)S.rest=90;panel=null;viewDay=null;toast('Backup restored')}catch(e){toast('That code isn’t a valid backup');return}break}
-    case 'wipe':S={v:1,unit:S.unit,rest:S.rest,example:false,split:[{id:uid(),name:'Day 1',ex:[]}],next:0,sessions:[],drafts:{}};pendingDel=null;viewDay=null;toast('All data erased');break;
+    case 'wipe':S={v:1,unit:S.unit,rest:S.rest,split:[{id:uid(),name:'Day 1',ex:[]}],next:0,sessions:[],drafts:{}};pendingDel=null;viewDay=null;toast('All data erased');break;
     case 'editsess':editSess=v;window.scrollTo(0,0);break;
     case 'closeedit':tidySession(editSess);editSess=null;break;
     case 'delhset':if(es){es.entries[+b.dataset.x].sets.splice(+b.dataset.i,1)}break;
