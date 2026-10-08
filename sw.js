@@ -1,6 +1,6 @@
 // Split Happens offline support. The page is fetched fresh when online (so updates arrive),
 // and served from cache when offline. Fonts and icons are cached after first use.
-const CACHE = 'splithappens-v5';
+const CACHE = 'splithappens-v6';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {

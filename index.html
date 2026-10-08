@@ -95,7 +95,7 @@ h1{font:700 44px/1 var(--f-display);margin:4px 0 6px;text-wrap:balance;text-tran
 
 .tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);
   display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom,0px);z-index:5}
-.tabs button{flex:1;max-width:186px;background:none;border:0;padding:12px 0 14px;font:600 13px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border-top:2px solid transparent;margin-top:-1px}
+.tabs button{flex:1;max-width:150px;background:none;border:0;padding:12px 0 14px;font:600 13px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border-top:2px solid transparent;margin-top:-1px}
 .tabs button.on{color:var(--accent);border-top-color:var(--accent)}
 
 /* Rest timer: slim bar pinned to the top while resting */
@@ -181,6 +181,7 @@ textarea{width:100%;min-height:120px;border:1px solid var(--line);border-radius:
   <button data-a="tab" data-v="today">Today</button>
   <button data-a="tab" data-v="split">Split</button>
   <button data-a="tab" data-v="history">History</button>
+  <button data-a="tab" data-v="settings">Settings</button>
 </nav>
 <div class="toast" id="toast" hidden></div>
 
@@ -336,15 +337,20 @@ function vSplit(){
       </div>`).join('')}</div>
     <button class="addex" data-a="addex" data-d="${d.id}">+ Add exercise</button>
   </div>`).join('');
-  const json=panel==='backup'?esc(JSON.stringify(S)):'';
-  const rests=[[0,'Off'],[60,'1:00'],[90,'1:30'],[120,'2:00'],[180,'3:00']];
   return `
   <div class="sec">
     <h2>Your split</h2>
     <p class="help">Add as many days as you like. The app cycles through them in order, so a 6‑day split runs Day 1 → Day 6, then back to Day 1, no matter which weekday you train. Write reps as a range like 6–8: once you hit the top on every set, the app suggests adding weight.</p>
     ${days}
     <button class="adday" data-a="addday">+ Add day ${S.split.length+1}</button>
-  </div>
+  </div>`;
+}
+
+/* ---------- Settings ---------- */
+function vSettings(){
+  const json=panel==='backup'?esc(JSON.stringify(S)):'';
+  const rests=[[0,'Off'],[60,'1:00'],[90,'1:30'],[120,'2:00'],[180,'3:00']];
+  return `
   <div class="sec">
     <h2>Settings</h2>
     <div class="row"><span>Rest timer<small>Starts when you tick a set</small></span><span class="seg">${rests.map(([v,l])=>`<button class="${S.rest===v?'on':''}" data-a="restlen" data-v="${v}">${l}</button>`).join('')}</span></div>
@@ -414,7 +420,7 @@ function vHistory(){
 function render(){
   const now=new Date().toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'});
   document.getElementById('app').innerHTML=`<div class="top"><span class="brand">Split Happens</span><span class="date">${now}</span></div>`+
-    (tab==='today'?vToday():tab==='split'?vSplit():vHistory());
+    (tab==='today'?vToday():tab==='split'?vSplit():tab==='settings'?vSettings():vHistory());
   document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===tab));
 }
 let tt;function toast(m){const t=document.getElementById('toast');t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,2200)}
